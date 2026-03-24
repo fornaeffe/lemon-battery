@@ -53,23 +53,36 @@
 	let energizedPlates = new Set<string>();
 	let readyPairCount = 0;
 	let insertedPlateCount = 0;
+	let ledCellCount = 0;
+	let ledPower = 0;
 	let ledIsOn = false;
 	let statusTitle = 'Circuito aperto';
 	let statusText =
 		'Trascina una lamina di zinco e una di rame nello stesso limone, poi chiudi il percorso con i fili.';
 
 	$: plateTouchById = buildPlateTouchMap(plates, lemons);
-	$: circuits = buildCircuits(connections, plates, led, plateTouchById);
-	$: energizedLemons = new Set(circuits.map((circuit) => circuit.lemonId));
-	$: energizedPlates = new Set(circuits.flatMap((circuit) => [circuit.zincId, circuit.copperId]));
+	$: circuits = buildCircuits(connections, plates, lemons, led, plateTouchById);
+	$: energizedLemons = new Set(circuits.flatMap((circuit) => circuit.lemonIds));
+	$: energizedPlates = new Set(circuits.flatMap((circuit) => circuit.plateIds));
 	$: readyPairCount = countReadyPairs(lemons, plates, plateTouchById);
 	$: insertedPlateCount = Object.values(plateTouchById).filter(Boolean).length;
-	$: ledIsOn = circuits.some((circuit) => circuit.kind === 'led');
+	$: ledCellCount = Math.max(
+		0,
+		...circuits.filter((circuit) => circuit.kind === 'led').map((circuit) => circuit.cellCount)
+	);
+	$: ledPower = Math.max(
+		0,
+		...circuits.filter((circuit) => circuit.kind === 'led').map((circuit) => circuit.power)
+	);
+	$: ledIsOn = ledCellCount > 0;
 	$: {
-		if (ledIsOn) {
+		if (ledIsOn && ledCellCount > 1) {
+			statusTitle = 'Led brillante';
+			statusText = `${ledCellCount} limoni in serie stanno spingendo il circuito: il led si accende di piu e gli elettroni corrono piu veloci.`;
+		} else if (ledIsOn) {
 			statusTitle = 'Led acceso';
 			statusText =
-				'Percorso chiuso: gli elettroni scorrono dallo zinco al rame e attraversano il led.';
+				'Percorso chiuso: il led e nel circuito e gli elettroni scorrono grazie alla cella del limone.';
 		} else if (circuits.length > 0) {
 			statusTitle = 'Circuito chiuso';
 			statusText =
@@ -77,7 +90,9 @@
 		} else if (readyPairCount > 0) {
 			statusTitle = 'Quasi pronto';
 			statusText =
-				'Le due lamine toccano lo stesso limone: ora aggancia i fili tra loro o ai terminali del led.';
+				readyPairCount > 1
+					? 'Hai gia piu celle pronte: collega lo zinco di un limone al rame del successivo e chiudi il led ai due estremi.'
+					: 'Le due lamine toccano lo stesso limone: ora aggancia i fili tra loro o ai terminali del led.';
 		} else if (insertedPlateCount > 0) {
 			statusTitle = 'Manca un metallo';
 			statusText =
@@ -370,7 +385,8 @@
 			<h1>Pila al limone</h1>
 			<p class="lede">
 				Muovi i pezzi sul banco, inserisci una lamina di zinco e una di rame nello stesso limone,
-				poi trascina i capi-filo per chiudere il circuito. Se il led entra nel percorso, si accende.
+				poi trascina i capi-filo per chiudere il circuito. Se colleghi piu limoni in serie, il led
+				diventa piu luminoso e gli elettroni accelerano.
 			</p>
 		</div>
 
@@ -380,6 +396,7 @@
 			<div class="status-meta">
 				<span>{circuits.length} circuiti chiusi</span>
 				<span>{energizedLemons.size} limoni attivi</span>
+				<span>{ledCellCount} celle sul led</span>
 			</div>
 		</div>
 	</section>
@@ -520,38 +537,65 @@
 				<g
 					class:led-on={ledIsOn}
 					class="led"
+					style={`--led-power: ${ledPower};`}
 					transform={`translate(${led.x} ${led.y})`}
 					on:pointerdown={beginLedDrag}
 					filter={ledIsOn ? 'url(#ledGlow)' : undefined}
 				>
 					<rect class="grab-area" x="-156" y="-66" width="312" height="132" rx="30" />
+					{#if ledIsOn}
+						<ellipse
+							class="led-aura"
+							cx="0"
+							cy="8"
+							rx={92 + ledPower * 22}
+							ry={56 + ledPower * 12}
+							style={`opacity: ${0.26 + ledPower * 0.48};`}
+						/>
+					{/if}
 					<line x1={-LED_TERMINAL_OFFSET} y1="8" x2={-LED_BODY_RX - 6} y2="8" class="led-pin" />
 					<line x1={LED_BODY_RX + 6} y1="8" x2={LED_TERMINAL_OFFSET} y2="8" class="led-pin" />
 					<circle cx={-LED_TERMINAL_OFFSET} cy="8" r="8" class="led-terminal" />
 					<circle cx={LED_TERMINAL_OFFSET} cy="8" r="8" class="led-terminal" />
 					<path
 						class="led-cap"
+						style={`stroke-width: ${3 + ledPower * 1.1};`}
 						d={`M ${-LED_BODY_RX} 8 C ${-LED_BODY_RX + 6} -34, ${LED_BODY_RX - 22} -34, ${LED_BODY_RX - 6} 8
 							C ${LED_BODY_RX + 2} 34, ${-LED_BODY_RX - 10} 34, ${-LED_BODY_RX} 8 Z`}
 					/>
-					<ellipse cx="0" cy="4" rx="44" ry="26" class="led-core" />
-					<path class="led-icon" d="M -24 8 L -4 -16 L -4 -2 L 22 -2 L -2 28 L -2 14 L -24 14 Z" />
+					<ellipse
+						cx="0"
+						cy="4"
+						rx="44"
+						ry="26"
+						class="led-core"
+						style={`opacity: ${0.55 + ledPower * 0.36};`}
+					/>
+					<path
+						class="led-icon"
+						style={`opacity: ${0.72 + ledPower * 0.18};`}
+						d="M -24 8 L -4 -16 L -4 -2 L 22 -2 L -2 28 L -2 14 L -24 14 Z"
+					/>
 				</g>
 
 				<g class="flow-layer">
 					{#each circuits as circuit (circuit.id)}
-						<polyline
-							points={formatPoints(circuit.points)}
-							class:led-flow={circuit.kind === 'led'}
-							class="flow-path"
-							filter="url(#flowGlow)"
-						/>
+						{#each circuit.flowSegments as segment, segmentIndex (`${circuit.id}-${segmentIndex}`)}
+							<polyline
+								points={formatPoints(segment)}
+								class:led-flow={circuit.kind === 'led'}
+								class="flow-path"
+								style={`stroke-width: ${4.4 + circuit.power * 1.4}; opacity: ${0.72 + circuit.power * 0.18};`}
+								filter="url(#flowGlow)"
+							/>
+						{/each}
 						{#each getElectronDots(circuit, animationTime) as electron (electron.id)}
 							<circle
 								cx={electron.x}
 								cy={electron.y}
 								r={electron.size}
 								class="electron"
+								style={`opacity: ${0.82 + circuit.power * 0.12};`}
 								filter="url(#flowGlow)"
 							/>
 						{/each}
@@ -596,13 +640,13 @@
 			<article class="instruction-card">
 				<p class="instruction-step">2</p>
 				<h2>Chiudi il circuito</h2>
-				<p>Afferra il capo-filo in alto e aggancialo a un altra lamina oppure ai due terminali del led.</p>
+				<p>Afferra il capo-filo in alto: puoi chiudere un solo limone oppure mettere piu celle in serie collegando Zn e Cu di limoni vicini.</p>
 			</article>
 
 			<article class="instruction-card">
 				<p class="instruction-step">3</p>
 				<h2>Osserva gli elettroni</h2>
-				<p>Quando il percorso e corretto, i pallini scorrono lungo i fili e il led si illumina.</p>
+				<p>Quando il percorso e corretto, i pallini scorrono lungo i fili; con piu limoni in serie il led brilla di piu.</p>
 			</article>
 		</div>
 	</section>
@@ -910,6 +954,12 @@
 		fill: #35506a;
 		stroke: #effaff;
 		stroke-width: 2.5;
+	}
+
+	.led-aura {
+		fill: rgba(255, 213, 105, 0.58);
+		filter: blur(18px);
+		pointer-events: none;
 	}
 
 	.led-cap {
