@@ -567,7 +567,7 @@ function getCircuitPower(kind: Circuit['kind'], cellCount: number) {
 		return 0.52;
 	}
 
-	return Math.min(1.2, 0.62 + (cellCount - 1) * 0.24);
+	return Math.min(1.2, cellCount * 0.4);
 }
 
 function buildDirectCircuits(
@@ -745,7 +745,7 @@ export function getElectronDots(circuit: Circuit, animationTime: number) {
 
 	const extraCells = Math.max(0, circuit.cellCount - 1);
 	const speed =
-		(circuit.kind === 'led' ? 158 : 138) + extraCells * (circuit.kind === 'led' ? 58 : 34);
+		(circuit.kind === 'led' ? 80 : 70) + extraCells * (circuit.kind === 'led' ? 80 : 70);
 	const count = (circuit.kind === 'led' ? 8 : 6) + extraCells * 2;
 	const size = 4.1 + circuit.power * 1.1;
 
