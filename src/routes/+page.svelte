@@ -381,12 +381,10 @@
 <main class="page">
 	<section class="hero">
 		<div class="hero-copy">
-			<p class="eyebrow">One-page SvelteKit experiment</p>
 			<h1>Pila al limone</h1>
 			<p class="lede">
 				Muovi i pezzi sul banco, inserisci una lamina di zinco e una di rame nello stesso limone,
-				poi trascina i capi-filo per chiudere il circuito. Se colleghi piu limoni in serie, il led
-				diventa piu luminoso e gli elettroni accelerano.
+				poi trascina i capi-filo per chiudere il circuito. Prova anche a collegare più limoni in serie.
 			</p>
 		</div>
 
@@ -646,7 +644,7 @@
 			<article class="instruction-card">
 				<p class="instruction-step">3</p>
 				<h2>Osserva gli elettroni</h2>
-				<p>Quando il percorso e corretto, i pallini scorrono lungo i fili; con piu limoni in serie il led brilla di piu.</p>
+				<p>Quando il percorso e corretto, gli elettroni scorrono lungo i fili; con piu limoni in serie il led brilla di più.</p>
 			</article>
 		</div>
 	</section>
