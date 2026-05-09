@@ -4,6 +4,10 @@ on:
   push:
     branches: 'main'
 
+    paths: 
+      - 'web/**' 
+      - '.github/workflows/deploy.yml'
+
 jobs:
   build_site:
     runs-on: ubuntu-latest
